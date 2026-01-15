@@ -1,0 +1,3 @@
+00:00 +0: loading D:/Coding/Project/roboticGripper/App/test/manual_control_integration_test.dart
+00:00 +0: Manual Control change should eventually update Dashboard Force display
+00:02 +1: All tests passed!

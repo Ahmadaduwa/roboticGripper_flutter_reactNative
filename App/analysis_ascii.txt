@@ -1,0 +1,7 @@
+Analyzing App...                                                
+
+   info - The private field _material could be 'final' - lib\screens\dashboard_screen.dart:22:10 - prefer_final_fields
+   info - The private field _confidence could be 'final' - lib\screens\dashboard_screen.dart:23:7 - prefer_final_fields
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widgets\force_indicator.dart:20:33 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widgets\material_card.dart:23:33 - deprecated_member_use
+
