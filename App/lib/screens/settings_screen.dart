@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/prefs_service.dart';
+import 'package:provider/provider.dart';
+import '../providers/localization_provider.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -11,7 +13,6 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final TextEditingController _urlController = TextEditingController();
-  bool _isThai = false;
 
   @override
   void initState() {
@@ -41,105 +42,113 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
-      body: Column(
-        children: [
-          // Custom Header Standardized
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.only(top: 50, bottom: 20),
-            color: const Color(0xFF0047AB), // Cobalt Blue
-            alignment: Alignment.center,
-            child: Text(
-              "Settings",
-              style: GoogleFonts.zillaSlab(
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-          ),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _buildCard(
-                    title: "Language",
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        _LanguageButton(
-                          label: "TH",
-                          isSelected: _isThai,
-                          onTap: () => setState(() => _isThai = true),
-                        ),
-                        const SizedBox(width: 16),
-                        _LanguageButton(
-                          label: "ENG",
-                          isSelected: !_isThai,
-                          onTap: () => setState(() => _isThai = false),
-                        ),
-                      ],
-                    ),
+    return Consumer<LocalizationProvider>(
+      builder: (context, localization, _) {
+        return Scaffold(
+          backgroundColor: const Color(0xFFF5F7FA),
+          body: Column(
+            children: [
+              // Custom Header Standardized
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.only(top: 50, bottom: 16),
+                color: const Color(0xFF0047AB), // Cobalt Blue
+                alignment: Alignment.center,
+                child: Text(
+                  localization.t('settings'),
+                  style: GoogleFonts.zillaSlab(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
                   ),
-                  const SizedBox(height: 20),
+                ),
+              ),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _buildCard(
+                        title: localization.t('language'),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            _LanguageButton(
+                              label: "TH",
+                              isSelected:
+                                  localization.locale.languageCode == 'th',
+                              onTap: () =>
+                                  localization.setLocale(const Locale('th')),
+                            ),
+                            const SizedBox(width: 16),
+                            _LanguageButton(
+                              label: "ENG",
+                              isSelected:
+                                  localization.locale.languageCode == 'en',
+                              onTap: () =>
+                                  localization.setLocale(const Locale('en')),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 20),
 
-                  _buildCard(
-                    title: "Connection Settings",
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Gripper API URL",
+                      _buildCard(
+                        title: localization.t('connection_settings'),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              localization.t('gripper_api_url'),
+                              style: GoogleFonts.outfit(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            TextField(
+                              controller: _urlController,
+                              decoration: InputDecoration(
+                                hintText: "http://192.168.1.50:8000",
+                                filled: true,
+                                fillColor: Colors.blue.withValues(alpha: 0.1),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  borderSide: BorderSide.none,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 30),
+
+                      ElevatedButton(
+                        onPressed: _saveSettings,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                        ),
+                        child: Text(
+                          localization.t('save'),
                           style: GoogleFonts.outfit(
+                            fontSize: 18,
+                            color: Colors.white,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        const SizedBox(height: 8),
-                        TextField(
-                          controller: _urlController,
-                          decoration: InputDecoration(
-                            hintText: "http://192.168.1.50:8000",
-                            filled: true,
-                            fillColor: Colors.blue.withValues(alpha: 0.1),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: BorderSide.none,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 30),
-
-                  ElevatedButton(
-                    onPressed: _saveSettings,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
                       ),
-                    ),
-                    child: Text(
-                      "Save",
-                      style: GoogleFonts.outfit(
-                        fontSize: 18,
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 

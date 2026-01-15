@@ -179,6 +179,19 @@ class ApiService {
     }
   }
 
+  // 13.5 POST /api/teach/stop - Stop currently running sequence
+  static Future<bool> stopSequence() async {
+    try {
+      final baseUrl = await PrefsService.getBaseUrl();
+      final response = await client
+          .post(Uri.parse('$baseUrl/api/teach/stop'), headers: _headers)
+          .timeout(_defaultTimeout);
+      return response.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
   // 14. GET /api/sync/patterns - Pull all patterns (with steps) from backend
   static Future<List<dynamic>> pullPatterns() async {
     try {

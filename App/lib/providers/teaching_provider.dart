@@ -7,7 +7,7 @@ import '../services/api_service.dart';
 /// Provider for managing teaching mode state and operations
 class TeachingProvider with ChangeNotifier {
   // ==================== State Variables ====================
-  
+
   // Pattern Management
   List<Pattern> _patterns = [];
   Pattern? _currentPattern;
@@ -33,28 +33,28 @@ class TeachingProvider with ChangeNotifier {
   bool _isBackendAvailable = false;
 
   // ==================== Getters ====================
-  
+
   List<Pattern> get patterns => _patterns;
   Pattern? get currentPattern => _currentPattern;
   bool get isLoadingPatterns => _isLoadingPatterns;
-  
+
   List<PatternStep> get recordingBuffer => _recordingBuffer;
   bool get isRecording => _isRecording;
-  
+
   double get currentGripperAngle => _currentGripperAngle;
   bool get isGripping => _isGripping;
   bool get isGripMode => _isGripMode;
-  
+
   bool get isExecuting => _isExecuting;
   int get currentExecutingStep => _currentExecutingStep;
-  
+
   bool get isSyncing => _isSyncing;
   String? get lastSyncError => _lastSyncError;
   DateTime? get lastSyncTime => _lastSyncTime;
   bool get isBackendAvailable => _isBackendAvailable;
 
   // ==================== Initialization ====================
-  
+
   TeachingProvider() {
     _loadPatternsFromDatabase();
   }
@@ -66,11 +66,13 @@ class TeachingProvider with ChangeNotifier {
 
     try {
       _patterns = await DatabaseService.instance.getAllPatterns();
-      
+
       // Load steps for each pattern
       for (var i = 0; i < _patterns.length; i++) {
         if (_patterns[i].id != null) {
-          final fullPattern = await DatabaseService.instance.getPattern(_patterns[i].id!);
+          final fullPattern = await DatabaseService.instance.getPattern(
+            _patterns[i].id!,
+          );
           if (fullPattern != null) {
             _patterns[i] = fullPattern;
           }
@@ -141,11 +143,13 @@ class TeachingProvider with ChangeNotifier {
       try {
         final patternMap = _currentPattern!.toJson();
         final steps = _currentPattern!.steps
-            .map((s) => {
-                  'step_order': s.stepOrder,
-                  'action_type': s.actionType,
-                  'params': s.params,
-                })
+            .map(
+              (s) => {
+                'step_order': s.stepOrder,
+                'action_type': s.actionType,
+                'params': s.params,
+              },
+            )
             .toList();
         patternMap['steps'] = steps;
         await ApiService.pushPatterns([patternMap]);
@@ -154,7 +158,7 @@ class TeachingProvider with ChangeNotifier {
       }
       // Then run full sync to reconcile
       await syncWithBackend();
-      
+
       return true;
     } catch (e) {
       debugPrint('Error saving pattern: $e');
@@ -304,12 +308,12 @@ class TeachingProvider with ChangeNotifier {
   void deleteStep(int index) {
     if (index >= 0 && index < _recordingBuffer.length) {
       _recordingBuffer.removeAt(index);
-      
+
       // Re-order remaining steps
       for (var i = index; i < _recordingBuffer.length; i++) {
         _recordingBuffer[i] = _recordingBuffer[i].copyWith(stepOrder: i);
       }
-      
+
       notifyListeners();
     }
   }
@@ -362,11 +366,15 @@ class TeachingProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final steps = _recordingBuffer.map((step) => {
-            "step_order": step.stepOrder,
-            "action_type": step.actionType,
-            "params": step.params,
-          }).toList();
+      final steps = _recordingBuffer
+          .map(
+            (step) => {
+              "step_order": step.stepOrder,
+              "action_type": step.actionType,
+              "params": step.params,
+            },
+          )
+          .toList();
 
       final ok = await ApiService.executeSequence(
         steps: steps,
@@ -375,12 +383,12 @@ class TeachingProvider with ChangeNotifier {
         isOn: isOn,
         patternName: _currentPattern?.name ?? 'Untitled',
       );
-      
+
       if (ok) {
         // Wait for sequence to finish by polling backend status
         await _waitForSequenceCompletion();
       }
-      
+
       return ok;
     } catch (e) {
       debugPrint('Error executing buffer on backend: $e');
@@ -397,33 +405,34 @@ class TeachingProvider with ChangeNotifier {
     const maxWaitSeconds = 300; // 5 minutes timeout
     const pollInterval = Duration(milliseconds: 500);
     final startTime = DateTime.now();
-    
+
     while (true) {
       final elapsed = DateTime.now().difference(startTime).inSeconds;
       if (elapsed > maxWaitSeconds) {
         debugPrint('⚠️ Sequence timeout after ${maxWaitSeconds}s');
         break;
       }
-      
+
       // Poll backend status
       final data = await ApiService.getSensorData();
       if (data != null) {
         final isRunning = data['is_running'] as bool? ?? false;
         final mode = data['mode'] as String? ?? 'MANUAL';
-        
+
         // Sequence done when mode returns to MANUAL and not running
         if (!isRunning && mode == 'MANUAL') {
           debugPrint('✅ Sequence completed');
           break;
         }
       }
-      
+
       await Future.delayed(pollInterval);
     }
   }
 
   /// Stop current execution
-  void stopExecution() {
+  Future<void> stopExecution() async {
+    await ApiService.stopSequence();
     _isExecuting = false;
     _currentExecutingStep = -1;
     notifyListeners();
@@ -461,59 +470,68 @@ class TeachingProvider with ChangeNotifier {
       // Step 2: Push local patterns to backend first (authoritative after CRUD)
       final localPatterns = await DatabaseService.instance.getAllPatterns();
       final pushPayload = <Map<String, dynamic>>[];
-      
+
       for (final pattern in localPatterns) {
         // Load full pattern with steps
-        final fullPattern = pattern.id != null 
+        final fullPattern = pattern.id != null
             ? await DatabaseService.instance.getPattern(pattern.id!)
             : pattern;
-        
+
         if (fullPattern != null) {
           pushPayload.add({
             'id': fullPattern.id,
             'name': fullPattern.name,
             'description': fullPattern.description,
-            'steps': fullPattern.steps.map((s) => {
-              'step_order': s.stepOrder,
-              'action_type': s.actionType,
-              'params': s.params,
-            }).toList(),
+            'steps': fullPattern.steps
+                .map(
+                  (s) => {
+                    'step_order': s.stepOrder,
+                    'action_type': s.actionType,
+                    'params': s.params,
+                  },
+                )
+                .toList(),
           });
         }
       }
-      
+
       final pushSuccess = await ApiService.pushPatterns(pushPayload);
-      debugPrint('Pushed ${pushPayload.length} pattern(s) to backend: $pushSuccess');
+      debugPrint(
+        'Pushed ${pushPayload.length} pattern(s) to backend: $pushSuccess',
+      );
 
       // Step 3: Pull patterns from backend (GET /api/sync/patterns) to reconcile
       final pullResponse = await ApiService.pullPatterns();
       debugPrint('Pulled ${pullResponse.length} pattern(s) from backend');
-      
+
       // Merge pulled patterns into local database
       for (final patternData in pullResponse) {
         if (patternData is! Map<String, dynamic>) continue;
-        
+
         final id = patternData['id'] as int?;
         final name = patternData['name'] as String? ?? 'Unnamed';
         final stepsData = patternData['steps'] as List<dynamic>? ?? [];
-        
+
         // Check if exists locally
-        final localPattern = id != null 
+        final localPattern = id != null
             ? await DatabaseService.instance.getPattern(id)
             : await DatabaseService.instance.getPatternByName(name);
-        
+
         if (localPattern == null) {
           // New pattern from backend
-          final steps = stepsData.map((s) {
-            if (s is! Map<String, dynamic>) return null;
-            return PatternStep(
-              stepOrder: s['step_order'] as int? ?? 0,
-              actionType: s['action_type'] as String? ?? 'wait',
-              params: Map<String, dynamic>.from(s['params'] as Map? ?? {}),
-              createdAt: DateTime.now(),
-            );
-          }).whereType<PatternStep>().toList();
-          
+          final steps = stepsData
+              .map((s) {
+                if (s is! Map<String, dynamic>) return null;
+                return PatternStep(
+                  stepOrder: s['step_order'] as int? ?? 0,
+                  actionType: s['action_type'] as String? ?? 'wait',
+                  params: Map<String, dynamic>.from(s['params'] as Map? ?? {}),
+                  createdAt: DateTime.now(),
+                );
+              })
+              .whereType<PatternStep>()
+              .toList();
+
           final newPattern = Pattern(
             name: name,
             steps: steps,
@@ -523,16 +541,19 @@ class TeachingProvider with ChangeNotifier {
           await DatabaseService.instance.savePattern(newPattern);
         } else {
           // Pattern exists - update with backend copy
-          final steps = stepsData.map((s) {
-            if (s is! Map<String, dynamic>) return null;
-            return PatternStep(
-              stepOrder: s['step_order'] as int? ?? 0,
-              actionType: s['action_type'] as String? ?? 'wait',
-              params: Map<String, dynamic>.from(s['params'] as Map? ?? {}),
-              createdAt: DateTime.now(),
-            );
-          }).whereType<PatternStep>().toList();
-          
+          final steps = stepsData
+              .map((s) {
+                if (s is! Map<String, dynamic>) return null;
+                return PatternStep(
+                  stepOrder: s['step_order'] as int? ?? 0,
+                  actionType: s['action_type'] as String? ?? 'wait',
+                  params: Map<String, dynamic>.from(s['params'] as Map? ?? {}),
+                  createdAt: DateTime.now(),
+                );
+              })
+              .whereType<PatternStep>()
+              .toList();
+
           final updatedPattern = localPattern.copyWith(
             steps: steps,
             updatedAt: DateTime.now(),
@@ -543,7 +564,7 @@ class TeachingProvider with ChangeNotifier {
 
       // Step 4: Reload from local database
       await _loadPatternsFromDatabase();
-      
+
       _lastSyncTime = DateTime.now();
       return true;
     } catch (e) {
@@ -573,15 +594,16 @@ class TeachingProvider with ChangeNotifier {
   /// Check if buffer has unsaved changes
   bool get hasUnsavedChanges {
     if (_currentPattern == null) return _recordingBuffer.isNotEmpty;
-    
+
     if (_currentPattern!.steps.length != _recordingBuffer.length) return true;
-    
+
     for (var i = 0; i < _recordingBuffer.length; i++) {
-      if (_recordingBuffer[i].actionType != _currentPattern!.steps[i].actionType) {
+      if (_recordingBuffer[i].actionType !=
+          _currentPattern!.steps[i].actionType) {
         return true;
       }
     }
-    
+
     return false;
   }
 }

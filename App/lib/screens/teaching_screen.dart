@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../providers/teaching_provider.dart';
 import '../providers/robot_provider.dart';
 import '../models/pattern.dart';
+import '../providers/localization_provider.dart';
 
 class TeachingScreen extends StatefulWidget {
   const TeachingScreen({super.key});
@@ -14,7 +15,9 @@ class TeachingScreen extends StatefulWidget {
 
 class _TeachingScreenState extends State<TeachingScreen> {
   bool _isDetailView = false;
-  final TextEditingController _waitController = TextEditingController(text: "1.0");
+  final TextEditingController _waitController = TextEditingController(
+    text: "1.0",
+  );
 
   @override
   void initState() {
@@ -36,71 +39,141 @@ class _TeachingScreenState extends State<TeachingScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
-      appBar: AppBar(
-        title: Text(
-          _isDetailView ? 'Edit Pattern' : 'Teaching Mode',
-          style: GoogleFonts.outfit(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
+      body: Column(
+        children: [
+          // Custom Header
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.only(
+              top: 50,
+              bottom: 16,
+              left: 8,
+              right: 8,
+            ),
+            color: const Color(0xFF0047AB),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                // Title
+                Text(
+                  _isDetailView
+                      ? context.watch<LocalizationProvider>().t('edit_pattern')
+                      : context.watch<LocalizationProvider>().t(
+                          'teaching_mode',
+                        ),
+                  style: GoogleFonts.zillaSlab(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+
+                // Leading (Back Button)
+                if (_isDetailView)
+                  Positioned(
+                    left: 0,
+                    child: IconButton(
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      onPressed: () => setState(() => _isDetailView = false),
+                    ),
+                  ),
+
+                // Actions (Sync Button)
+                if (!_isDetailView)
+                  Positioned(
+                    right: 0,
+                    child: Consumer<TeachingProvider>(
+                      builder: (context, provider, _) {
+                        return IconButton(
+                          icon: provider.isSyncing
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(Icons.sync, color: Colors.white),
+                          onPressed: provider.isSyncing
+                              ? null
+                              : () async {
+                                  final success = await provider
+                                      .syncWithBackend();
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          success
+                                              ? 'Synced successfully!'
+                                              : 'Sync failed: ${provider.lastSyncError ?? "Unknown error"}',
+                                        ),
+                                        backgroundColor: success
+                                            ? Colors.green
+                                            : Colors.red,
+                                      ),
+                                    );
+                                  }
+                                },
+                        );
+                      },
+                    ),
+                  ),
+              ],
+            ),
           ),
-        ),
-        centerTitle: true,
-        backgroundColor: const Color(0xFF0D47A1),
-        leading: _isDetailView
-            ? IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.white),
-                onPressed: () => setState(() => _isDetailView = false),
-              )
-            : null,
-        actions: [
-          if (!_isDetailView)
-            Consumer<TeachingProvider>(
-              builder: (context, provider, _) {
-                return IconButton(
-                  icon: provider.isSyncing
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
-                          ),
-                        )
-                      : const Icon(Icons.sync, color: Colors.white),
-                  onPressed: provider.isSyncing
-                      ? null
-                      : () async {
-                          final success = await provider.syncWithBackend();
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  success
-                                      ? 'Synced successfully!'
-                                      : 'Sync failed: ${provider.lastSyncError ?? "Unknown error"}',
-                                ),
-                                backgroundColor: success ? Colors.green : Colors.red,
+
+          Expanded(
+            child: Consumer<TeachingProvider>(
+              builder: (context, provider, child) {
+                return _isDetailView
+                    ? SingleChildScrollView(
+                        padding: const EdgeInsets.all(20.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            // Pattern Info Card
+                            _buildPatternInfoCard(provider),
+                            const SizedBox(height: 24),
+
+                            // Action Controller Section
+                            _buildSectionHeader(
+                              context.watch<LocalizationProvider>().t(
+                                'action_controller',
                               ),
-                            );
-                          }
-                        },
-                );
+                            ),
+                            const SizedBox(height: 12),
+                            _buildActionController(provider),
+                            const SizedBox(height: 24),
+
+                            // Sequence Controls
+                            _buildSectionHeader(
+                              "${context.watch<LocalizationProvider>().t('recorded_sequence')} (${provider.bufferStepCount} ${context.watch<LocalizationProvider>().t('steps')})",
+                            ),
+                            const SizedBox(height: 12),
+                            _buildSequenceList(provider),
+                            const SizedBox(height: 24),
+
+                            // Testing Area
+                            _buildTestingArea(provider),
+                            const SizedBox(height: 24),
+
+                            // Save Button
+                            _buildSaveButton(context, provider),
+                          ],
+                        ),
+                      )
+                    : _buildListView(context, provider);
               },
             ),
+          ),
         ],
-      ),
-      body: Consumer<TeachingProvider>(
-        builder: (context, provider, child) {
-          return _isDetailView
-              ? _buildDetailView(context, provider)
-              : _buildListView(context, provider);
-        },
       ),
     );
   }
 
   // ==================== Pattern List View ====================
-  
+
   Widget _buildListView(BuildContext context, TeachingProvider provider) {
     if (provider.isLoadingPatterns) {
       return const Center(child: CircularProgressIndicator());
@@ -109,9 +182,11 @@ class _TeachingScreenState extends State<TeachingScreen> {
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
-        _buildSectionHeader("Saved Patterns (${provider.patternCount})"),
+        _buildSectionHeader(
+          "${context.watch<LocalizationProvider>().t('saved_patterns')} (${provider.patternCount})",
+        ),
         const SizedBox(height: 12),
-        
+
         if (provider.patterns.isEmpty)
           Card(
             elevation: 2,
@@ -122,10 +197,14 @@ class _TeachingScreenState extends State<TeachingScreen> {
               padding: const EdgeInsets.all(32),
               child: Column(
                 children: [
-                  Icon(Icons.folder_open, size: 64, color: Colors.grey.shade400),
+                  Icon(
+                    Icons.folder_open,
+                    size: 64,
+                    color: Colors.grey.shade400,
+                  ),
                   const SizedBox(height: 16),
                   Text(
-                    'No patterns yet',
+                    context.watch<LocalizationProvider>().t('no_patterns'),
                     style: GoogleFonts.outfit(
                       fontSize: 18,
                       color: Colors.grey.shade600,
@@ -147,7 +226,7 @@ class _TeachingScreenState extends State<TeachingScreen> {
           ),
 
         const SizedBox(height: 24),
-        
+
         SizedBox(
           height: 56,
           child: ElevatedButton.icon(
@@ -156,7 +235,7 @@ class _TeachingScreenState extends State<TeachingScreen> {
             },
             icon: const Icon(Icons.add, color: Colors.white),
             label: Text(
-              "CREATE NEW PATTERN",
+              context.watch<LocalizationProvider>().t('create_new_pattern'),
               style: GoogleFonts.outfit(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -176,28 +255,30 @@ class _TeachingScreenState extends State<TeachingScreen> {
     );
   }
 
-  Widget _buildPatternCard(BuildContext context, Pattern pattern, TeachingProvider provider) {
+  Widget _buildPatternCard(
+    BuildContext context,
+    Pattern pattern,
+    TeachingProvider provider,
+  ) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         leading: CircleAvatar(
           backgroundColor: const Color(0xFF0D47A1),
           child: Text(
             '${pattern.stepCount}',
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
         title: Text(
           pattern.name,
-          style: GoogleFonts.outfit(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-          ),
+          style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.w600),
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -227,67 +308,36 @@ class _TeachingScreenState extends State<TeachingScreen> {
     );
   }
 
-  // ==================== Pattern Detail/Editor View ====================
-  
-  Widget _buildDetailView(BuildContext context, TeachingProvider provider) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Pattern Info Card
-          _buildPatternInfoCard(provider),
-          const SizedBox(height: 24),
-
-          // Action Controller Section
-          _buildSectionHeader("Action Controller"),
-          const SizedBox(height: 12),
-          _buildActionController(provider),
-          const SizedBox(height: 24),
-
-          // Sequence Controls
-          _buildSectionHeader("Recorded Sequence (${provider.bufferStepCount} steps)"),
-          const SizedBox(height: 12),
-          _buildSequenceList(provider),
-          const SizedBox(height: 24),
-
-          // Testing Area
-          _buildTestingArea(provider),
-          const SizedBox(height: 24),
-
-          // Save Button
-          _buildSaveButton(context, provider),
-        ],
-      ),
-    );
-  }
-
   Widget _buildPatternInfoCard(TeachingProvider provider) {
     return Card(
       elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              "Pattern Name",
+              context.watch<LocalizationProvider>().t('pattern_name'),
               style: GoogleFonts.outfit(
                 color: Colors.grey.shade600,
                 fontSize: 12,
               ),
             ),
             TextField(
-              controller: TextEditingController(
-                text: provider.currentPattern?.name ?? 'New Pattern',
-              )..selection = TextSelection.fromPosition(
-                  TextPosition(
-                    offset: provider.currentPattern?.name.length ?? 0,
-                  ),
-                ),
+              controller:
+                  TextEditingController(
+                      text:
+                          provider.currentPattern?.name ??
+                          context.watch<LocalizationProvider>().t(
+                            'new_pattern',
+                          ),
+                    )
+                    ..selection = TextSelection.fromPosition(
+                      TextPosition(
+                        offset: provider.currentPattern?.name.length ?? 0,
+                      ),
+                    ),
               decoration: const InputDecoration(
                 border: InputBorder.none,
                 contentPadding: EdgeInsets.zero,
@@ -300,7 +350,7 @@ class _TeachingScreenState extends State<TeachingScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              "Description (Optional)",
+              context.watch<LocalizationProvider>().t('description'),
               style: GoogleFonts.outfit(
                 color: Colors.grey.shade600,
                 fontSize: 12,
@@ -310,10 +360,10 @@ class _TeachingScreenState extends State<TeachingScreen> {
               controller: TextEditingController(
                 text: provider.currentPattern?.description ?? '',
               ),
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 border: InputBorder.none,
                 contentPadding: EdgeInsets.zero,
-                hintText: 'Add a description...',
+                hintText: context.watch<LocalizationProvider>().t('add_desc'),
               ),
               style: GoogleFonts.outfit(fontSize: 14),
               maxLines: 2,
@@ -328,9 +378,7 @@ class _TeachingScreenState extends State<TeachingScreen> {
   Widget _buildActionController(TeachingProvider provider) {
     return Card(
       elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -340,9 +388,15 @@ class _TeachingScreenState extends State<TeachingScreen> {
               children: [
                 Expanded(
                   child: _ActionButton(
-                    label: provider.isGripMode ? "ADD GRIP" : "ADD RELEASE",
+                    label: provider.isGripMode
+                        ? context.watch<LocalizationProvider>().t('add_grip')
+                        : context.watch<LocalizationProvider>().t(
+                            'add_release',
+                          ),
                     icon: provider.isGripMode ? Icons.compress : Icons.expand,
-                    color: provider.isGripMode ? Colors.orange.shade700 : Colors.blue.shade700,
+                    color: provider.isGripMode
+                        ? Colors.orange.shade700
+                        : Colors.blue.shade700,
                     onTap: () {
                       if (provider.isGripMode) {
                         provider.addGripStep(0); // 0 = closed
@@ -357,7 +411,9 @@ class _TeachingScreenState extends State<TeachingScreen> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: _ActionButton(
-                    label: "ADD POSITION",
+                    label: context.watch<LocalizationProvider>().t(
+                      'add_position',
+                    ),
                     icon: Icons.location_on,
                     color: Colors.green.shade700,
                     onTap: () async {
@@ -389,21 +445,26 @@ class _TeachingScreenState extends State<TeachingScreen> {
                     child: TextField(
                       controller: _waitController,
                       keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         border: InputBorder.none,
-                        labelText: "Wait Duration (seconds)",
+                        labelText: context.watch<LocalizationProvider>().t(
+                          'wait_duration',
+                        ),
                         contentPadding: EdgeInsets.zero,
                       ),
                     ),
                   ),
                   ElevatedButton.icon(
                     onPressed: () {
-                      final duration = double.tryParse(_waitController.text) ?? 1.0;
+                      final duration =
+                          double.tryParse(_waitController.text) ?? 1.0;
                       provider.addWaitStep(duration);
                       _showSnackBar('Wait step added (${duration}s)');
                     },
                     icon: const Icon(Icons.add, size: 18),
-                    label: const Text("ADD WAIT"),
+                    label: Text(
+                      context.watch<LocalizationProvider>().t('add_wait'),
+                    ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF0D47A1),
                       foregroundColor: Colors.white,
@@ -422,9 +483,7 @@ class _TeachingScreenState extends State<TeachingScreen> {
     if (provider.recordingBuffer.isEmpty) {
       return Card(
         elevation: 2,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Padding(
           padding: const EdgeInsets.all(32),
           child: Column(
@@ -452,9 +511,7 @@ class _TeachingScreenState extends State<TeachingScreen> {
 
     return Card(
       elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Column(
         children: [
           // Clear all button
@@ -464,7 +521,7 @@ class _TeachingScreenState extends State<TeachingScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Steps',
+                  context.watch<LocalizationProvider>().t('steps'),
                   style: GoogleFonts.outfit(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
@@ -473,7 +530,10 @@ class _TeachingScreenState extends State<TeachingScreen> {
                 TextButton.icon(
                   onPressed: () => _confirmClearBuffer(context, provider),
                   icon: const Icon(Icons.delete_sweep, color: Colors.red),
-                  label: const Text('Clear All', style: TextStyle(color: Colors.red)),
+                  label: Text(
+                    context.watch<LocalizationProvider>().t('clear_all'),
+                    style: const TextStyle(color: Colors.red),
+                  ),
                 ),
               ],
             ),
@@ -483,21 +543,31 @@ class _TeachingScreenState extends State<TeachingScreen> {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: provider.recordingBuffer.length,
-            separatorBuilder: (ctx, i) => const Divider(height: 1, indent: 16, endIndent: 16),
+            separatorBuilder: (ctx, i) =>
+                const Divider(height: 1, indent: 16, endIndent: 16),
             itemBuilder: (context, index) {
               final step = provider.recordingBuffer[index];
-              final isExecuting = provider.isExecuting && provider.currentExecutingStep == index;
-              
+              final isExecuting =
+                  provider.isExecuting &&
+                  provider.currentExecutingStep == index;
+
               return ListTile(
                 leading: CircleAvatar(
-                  backgroundColor: isExecuting 
-                      ? Colors.green 
+                  backgroundColor: isExecuting
+                      ? Colors.green
                       : _getStepColor(step.actionType),
                   child: isExecuting
-                      ? const Icon(Icons.play_arrow, color: Colors.white, size: 20)
+                      ? const Icon(
+                          Icons.play_arrow,
+                          color: Colors.white,
+                          size: 20,
+                        )
                       : Text(
                           '${index + 1}',
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                 ),
                 title: Text(
@@ -513,7 +583,9 @@ class _TeachingScreenState extends State<TeachingScreen> {
                   children: [
                     IconButton(
                       icon: const Icon(Icons.arrow_upward, size: 20),
-                      onPressed: index > 0 ? () => provider.moveStepUp(index) : null,
+                      onPressed: index > 0
+                          ? () => provider.moveStepUp(index)
+                          : null,
                       color: Colors.blue,
                     ),
                     IconButton(
@@ -541,16 +613,14 @@ class _TeachingScreenState extends State<TeachingScreen> {
   Widget _buildTestingArea(TeachingProvider provider) {
     return Card(
       elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              "Testing Area",
+              context.watch<LocalizationProvider>().t('testing_area'),
               style: GoogleFonts.outfit(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -560,45 +630,49 @@ class _TeachingScreenState extends State<TeachingScreen> {
             SizedBox(
               height: 56,
               child: ElevatedButton.icon(
-                onPressed: provider.recordingBuffer.isEmpty || provider.isExecuting
+                onPressed: provider.recordingBuffer.isEmpty
                     ? null
                     : () async {
+                        if (provider.isExecuting) {
+                          await provider.stopExecution();
+                          return;
+                        }
+
                         final robot = context.read<RobotProvider>();
-                        
+
                         // 1. Save current Manual Control state
                         final previousSystemState = robot.isSystemOn;
-                        
+
                         // 2. Force Manual Control OFF
                         await robot.forceSystemOff();
-                        
+
                         // 3. Execute sequence
                         final success = await provider.executeOnBackend(
                           maxForce: robot.maxForce,
                           gripperAngle: robot.gripperPosition,
                           isOn: robot.isSystemOn,
                         );
-                        
+
                         // 4. Restore original Manual Control state
                         await robot.restoreSystemState(previousSystemState);
-                        
+
                         if (mounted) {
                           _showSnackBar(
-                            success ? 'Execution completed' : 'Execution failed',
+                            success
+                                ? 'Execution completed'
+                                : 'Execution failed',
                           );
                         }
                       },
                 icon: provider.isExecuting
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2,
-                        ),
-                      )
+                    ? const Icon(Icons.stop, color: Colors.white)
                     : const Icon(Icons.play_arrow, color: Colors.white),
                 label: Text(
-                  provider.isExecuting ? "EXECUTING..." : "PLAY SEQUENCE",
+                  provider.isExecuting
+                      ? context.watch<LocalizationProvider>().t('stop_sequence')
+                      : context.watch<LocalizationProvider>().t(
+                          'play_sequence',
+                        ),
                   style: GoogleFonts.outfit(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -606,7 +680,9 @@ class _TeachingScreenState extends State<TeachingScreen> {
                   ),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF00C853),
+                  backgroundColor: provider.isExecuting
+                      ? Colors.red
+                      : const Color(0xFF00C853),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -636,7 +712,7 @@ class _TeachingScreenState extends State<TeachingScreen> {
         },
         icon: const Icon(Icons.save, color: Colors.white),
         label: Text(
-          "SAVE PATTERN",
+          context.watch<LocalizationProvider>().t('save_pattern'),
           style: GoogleFonts.outfit(
             fontSize: 16,
             fontWeight: FontWeight.bold,
@@ -685,27 +761,35 @@ class _TeachingScreenState extends State<TeachingScreen> {
 
   void _showSnackBar(String message) {
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
     }
   }
 
-  void _showCreatePatternDialog(BuildContext context, TeachingProvider provider) {
+  void _showCreatePatternDialog(
+    BuildContext context,
+    TeachingProvider provider,
+  ) {
     final nameController = TextEditingController();
     final descController = TextEditingController();
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Create New Pattern', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+        title: Text(
+          context.watch<LocalizationProvider>().t('create_new_pattern'),
+          style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
               controller: nameController,
-              decoration: const InputDecoration(
-                labelText: 'Pattern Name',
+              decoration: InputDecoration(
+                labelText: context.watch<LocalizationProvider>().t(
+                  'pattern_name',
+                ),
                 border: OutlineInputBorder(),
               ),
               autofocus: true,
@@ -713,8 +797,10 @@ class _TeachingScreenState extends State<TeachingScreen> {
             const SizedBox(height: 16),
             TextField(
               controller: descController,
-              decoration: const InputDecoration(
-                labelText: 'Description (Optional)',
+              decoration: InputDecoration(
+                labelText: context.watch<LocalizationProvider>().t(
+                  'description',
+                ),
                 border: OutlineInputBorder(),
               ),
               maxLines: 2,
@@ -724,14 +810,16 @@ class _TeachingScreenState extends State<TeachingScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(context.watch<LocalizationProvider>().t('cancel')),
           ),
           ElevatedButton(
             onPressed: () {
               if (nameController.text.isNotEmpty) {
                 provider.createNewPattern(
                   nameController.text,
-                  description: descController.text.isEmpty ? null : descController.text,
+                  description: descController.text.isEmpty
+                      ? null
+                      : descController.text,
                 );
                 Navigator.pop(context);
                 setState(() => _isDetailView = true);
@@ -741,23 +829,32 @@ class _TeachingScreenState extends State<TeachingScreen> {
               backgroundColor: const Color(0xFF0D47A1),
               foregroundColor: Colors.white,
             ),
-            child: const Text('Create'),
+            child: Text(context.watch<LocalizationProvider>().t('create')),
           ),
         ],
       ),
     );
   }
 
-  void _confirmDelete(BuildContext context, Pattern pattern, TeachingProvider provider) {
+  void _confirmDelete(
+    BuildContext context,
+    Pattern pattern,
+    TeachingProvider provider,
+  ) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Delete Pattern', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
-        content: Text('Are you sure you want to delete "${pattern.name}"?'),
+        title: Text(
+          context.watch<LocalizationProvider>().t('confirm_delete'),
+          style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          "${context.watch<LocalizationProvider>().t('are_you_sure_delete')} \"${pattern.name}\"?",
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(context.watch<LocalizationProvider>().t('cancel')),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -773,7 +870,7 @@ class _TeachingScreenState extends State<TeachingScreen> {
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
             ),
-            child: const Text('Delete'),
+            child: Text(context.watch<LocalizationProvider>().t('delete')),
           ),
         ],
       ),
@@ -784,12 +881,15 @@ class _TeachingScreenState extends State<TeachingScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Clear All Steps', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+        title: Text(
+          context.watch<LocalizationProvider>().t('clear_all'),
+          style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
+        ),
         content: const Text('Are you sure you want to clear all steps?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(context.watch<LocalizationProvider>().t('cancel')),
           ),
           ElevatedButton(
             onPressed: () {
@@ -801,7 +901,7 @@ class _TeachingScreenState extends State<TeachingScreen> {
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
             ),
-            child: const Text('Clear'),
+            child: Text(context.watch<LocalizationProvider>().t('clear_all')),
           ),
         ],
       ),
@@ -858,4 +958,3 @@ class _ActionButton extends StatelessWidget {
     );
   }
 }
-

@@ -1,0 +1,196 @@
+import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+class LocalizationProvider with ChangeNotifier {
+  Locale _locale = const Locale('en');
+
+  Locale get locale => _locale;
+
+  LocalizationProvider() {
+    _loadLocale();
+  }
+
+  Future<void> _loadLocale() async {
+    final prefs = await SharedPreferences.getInstance();
+    final link = prefs.getString('language_code');
+    if (link != null) {
+      _locale = Locale(link);
+      notifyListeners();
+    }
+  }
+
+  Future<void> setLocale(Locale cx) async {
+    _locale = cx;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('language_code', cx.languageCode);
+    notifyListeners();
+  }
+
+  // Simple Translation Map
+  static final Map<String, Map<String, String>> _localizedValues = {
+    'en': {
+      'dashboard': 'Dashboard',
+      'control': 'Control',
+      'teaching': 'Teaching',
+      'autoRun': 'Auto Run',
+      'settings': 'Settings',
+      'force': 'Force',
+      'material': 'Material',
+      'live': 'LIVE',
+      'connected': 'CONNECTED',
+      'disconnected': 'DISCONNECTED',
+      'language': 'Language',
+      'connection_settings': 'Connection Settings',
+      'gripper_api_url': 'Gripper API URL',
+      'save': 'Save',
+      'confidence': 'Confidence',
+      'force_history': 'Force History',
+      'manual_control': 'Manual Control',
+      'system_status': 'System Status',
+      'on': 'ON',
+      'off': 'OFF',
+      'gripper_control': 'Gripper Control',
+      'force_limit': 'Force Limit (N)',
+      'joint_control': 'Joint Control',
+      'open': 'Open',
+      'closed': 'Closed',
+      'teaching_mode': 'Teaching Mode',
+      'saved_patterns': 'Saved Patterns',
+      'create_new_pattern': 'CREATE NEW PATTERN',
+      'no_patterns': 'No patterns yet',
+      'edit_pattern': 'Edit Pattern',
+      'new_pattern': 'New Pattern',
+      'pattern_name': 'Pattern Name',
+      'description': 'Description',
+      'action_controller': 'Action Controller',
+      'add_grip': 'ADD GRIP',
+      'add_release': 'ADD RELEASE',
+      'add_position': 'ADD POSITION',
+      'wait_duration': 'Wait Duration',
+      'add_wait': 'ADD WAIT',
+      'recorded_sequence': 'Recorded Sequence',
+      'steps': 'Steps',
+      'testing_area': 'Testing Area',
+      'play_sequence': 'PLAY SEQUENCE',
+      'stop_sequence': 'STOP SEQUENCE',
+      'save_pattern': 'SAVE PATTERN',
+      'clear_all': 'Clear All',
+      'steps_count': 'steps',
+      'enter_name': 'Enter name',
+      'add_desc': 'Add a description...',
+      'system_ready': 'System Ready',
+      'system_offline': 'System Offline',
+      'run_configuration': 'Run Configuration',
+      'select_pattern': 'Select Pattern',
+      'cycle_count': 'Cycle Count',
+      'max_force_limit': 'Max Force Limit',
+      'log_filename': 'Log Filename',
+      'start_auto_run': 'START AUTO RUN',
+      'stop_auto_run': 'STOP AUTO RUN',
+      'execution_logs': 'Recent Execution Logs',
+      'download': 'Download',
+      'delete': 'Delete',
+      'running': 'Running...',
+      'cycles': 'Cycles',
+      'status': 'Status',
+      'cancel': 'Cancel',
+      'create': 'Create',
+      'confirm_delete': 'Confirm Delete',
+      'are_you_sure_delete': 'Are you sure you want to delete',
+      'success': 'Success',
+      'error': 'Error',
+      'saved': 'Saved',
+      'failed': 'Failed',
+      'checking_connection': 'Checking connection...',
+      'connecting_simulation': 'Connecting to Simulation...',
+      'syncing_db': 'Syncing Database...',
+      'cannot_connect': 'Cannot connect to Simulation Backend.',
+      'connection_failed': 'Connection Failed',
+      'retry_connection': 'Retry Connection',
+    },
+    'th': {
+      'dashboard': 'แผงควบคุม',
+      'control': 'ควบคุม',
+      'teaching': 'สอนหุ่นยนต์',
+      'autoRun': 'ทำงานอัตโนมัติ',
+      'settings': 'ตั้งค่า',
+      'force': 'แรงกด',
+      'material': 'วัสดุ',
+      'live': 'สด',
+      'connected': 'เชื่อมต่อแล้ว',
+      'disconnected': 'ไม่เชื่อมต่อ',
+      'language': 'ภาษา',
+      'connection_settings': 'ตั้งค่าการเชื่อมต่อ',
+      'gripper_api_url': 'API URL ของกริปเปอร์',
+      'save': 'บันทึก',
+      'confidence': 'ความมั่นใจ',
+      'force_history': 'ประวัติแรงกด',
+      'manual_control': 'การควบคุมแบบแมนนวล',
+      'system_status': 'สถานะระบบ',
+      'on': 'เปิด',
+      'off': 'ปิด',
+      'gripper_control': 'ควบคุมกริปเปอร์',
+      'force_limit': 'จำกัดแรงกด (N)',
+      'joint_control': 'ควบคุมข้อต่อ',
+      'open': 'กางออก',
+      'closed': 'หุบเข้า',
+      'teaching_mode': 'โหมดสอน',
+      'saved_patterns': 'รูปแบบที่บันทึกไว้',
+      'create_new_pattern': 'สร้างรูปแบบใหม่',
+      'no_patterns': 'ยังไม่มีรูปแบบ',
+      'edit_pattern': 'แก้ไขรูปแบบ',
+      'new_pattern': 'รูปแบบใหม่',
+      'pattern_name': 'ชื่อรูปแบบ',
+      'description': 'คำอธิบาย',
+      'action_controller': 'ตัวควบคุมการกระทำ',
+      'add_grip': 'เพิ่มการจับ',
+      'add_release': 'เพิ่มการปล่อย',
+      'add_position': 'เพิ่มตำแหน่ง',
+      'wait_duration': 'ระยะเวลารอ',
+      'add_wait': 'เพิ่มการรอ',
+      'recorded_sequence': 'ลำดับที่บันทึก',
+      'steps': 'ขั้นตอน',
+      'testing_area': 'พื้นที่ทดสอบ',
+      'play_sequence': 'เล่นลำดับ',
+      'stop_sequence': 'หยุดลำดับ',
+      'save_pattern': 'บันทึกรูปแบบ',
+      'clear_all': 'ล้างทั้งหมด',
+      'steps_count': 'ขั้นตอน',
+      'enter_name': 'กรอกชื่อ',
+      'add_desc': 'เพิ่มคำอธิบาย...',
+      'system_ready': 'ระบบพร้อม',
+      'system_offline': 'ระบบออฟไลน์',
+      'run_configuration': 'ตั้งค่าการทำงาน',
+      'select_pattern': 'เลือกรูปแบบ',
+      'cycle_count': 'จำนวนรอบ',
+      'max_force_limit': 'จำกัดแรงกดสูงสุด',
+      'log_filename': 'ชื่อไฟล์บันทึก',
+      'start_auto_run': 'เริ่มทำงานอัตโนมัติ',
+      'stop_auto_run': 'หยุดทำงานอัตโนมัติ',
+      'execution_logs': 'ประวัติการทำงานล่าสุด',
+      'download': 'ดาวน์โหลด',
+      'delete': 'ลบ',
+      'running': 'กำลังทำงาน...',
+      'cycles': 'รอบ',
+      'status': 'สถานะ',
+      'cancel': 'ยกเลิก',
+      'create': 'สร้าง',
+      'confirm_delete': 'ยืนยันการลบ',
+      'are_you_sure_delete': 'คุณแน่ใจหรือไม่ที่จะลบ',
+      'success': 'สำเร็จ',
+      'error': 'ผิดพลาด',
+      'saved': 'บันทึกแล้ว',
+      'failed': 'ล้มเหลว',
+      'checking_connection': 'กำลังตรวจสอบการเชื่อมต่อ...',
+      'connecting_simulation': 'กำลังเชื่อมต่อกับระบบจำลอง...',
+      'syncing_db': 'กำลังซิงค์ฐานข้อมูล...',
+      'cannot_connect': 'ไม่สามารถเชื่อมต่อกับระบบจำลองได้',
+      'connection_failed': 'การเชื่อมต่อล้มเหลว',
+      'retry_connection': 'ลองเชื่อมต่อใหม่',
+    },
+  };
+
+  String t(String key) {
+    return _localizedValues[_locale.languageCode]?[key] ?? key;
+  }
+}

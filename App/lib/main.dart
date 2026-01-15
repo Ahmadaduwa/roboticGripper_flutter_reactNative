@@ -8,6 +8,8 @@ import 'services/api_service.dart';
 import 'services/database_service.dart';
 import 'models/pattern.dart';
 
+import 'providers/localization_provider.dart';
+
 void main() {
   runApp(const RoboticGripperApp());
 }
@@ -21,16 +23,21 @@ class RoboticGripperApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => RobotProvider()),
         ChangeNotifierProvider(create: (_) => TeachingProvider()),
+        ChangeNotifierProvider(create: (_) => LocalizationProvider()),
       ],
-      child: MaterialApp(
-        title: 'Robotic Gripper',
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          primarySwatch: Colors.blue,
-          textTheme: GoogleFonts.outfitTextTheme(),
-          useMaterial3: true,
-        ),
-        home: const SplashScreen(),
+      child: Consumer<LocalizationProvider>(
+        builder: (context, localization, child) {
+          return MaterialApp(
+            title: 'Robotic Gripper',
+            debugShowCheckedModeBanner: false,
+            theme: ThemeData(
+              primarySwatch: Colors.blue,
+              textTheme: GoogleFonts.outfitTextTheme(),
+              useMaterial3: true,
+            ),
+            home: const SplashScreen(),
+          );
+        },
       ),
     );
   }
@@ -55,7 +62,7 @@ class _SplashScreenState extends State<SplashScreen> {
 
   Future<void> _initializeApp() async {
     setState(() {
-      _status = "Connecting to Simulation...";
+      _status = context.read<LocalizationProvider>().t('connecting_simulation');
       _hasError = false;
     });
 
@@ -67,14 +74,17 @@ class _SplashScreenState extends State<SplashScreen> {
           setState(() {
             _hasError = true;
             _status =
-                "Cannot connect to Simulation Backend.\nPlease ensure simulation.py is running.";
+                "${context.read<LocalizationProvider>().t('cannot_connect')}\nPlease ensure simulation.py is running.";
           });
         }
         return;
       }
 
       // 2. Sync Data
-      if (mounted) setState(() => _status = "Syncing Database...");
+      if (mounted)
+        setState(
+          () => _status = context.read<LocalizationProvider>().t('syncing_db'),
+        );
 
       // Pull from Backend
       final patternsJson = await ApiService.pullPatterns();
@@ -116,6 +126,7 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final localization = context.watch<LocalizationProvider>();
     return Scaffold(
       backgroundColor: const Color(0xFF0D47A1),
       body: Center(
@@ -132,7 +143,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  "Connection Failed",
+                  localization.t('connection_failed'),
                   style: GoogleFonts.outfit(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
@@ -152,7 +163,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 ElevatedButton.icon(
                   onPressed: _initializeApp,
                   icon: const Icon(Icons.refresh),
-                  label: const Text("Retry Connection"),
+                  label: Text(localization.t('retry_connection')),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 32,
