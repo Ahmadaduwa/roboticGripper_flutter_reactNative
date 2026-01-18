@@ -27,6 +27,10 @@ class _AutoRunScreenState extends State<AutoRunScreen> {
     text: "run_data.csv",
   );
 
+  final FocusNode _cyclesFocus = FocusNode();
+  final FocusNode _forceFocus = FocusNode();
+  final FocusNode _fileFocus = FocusNode();
+
   bool _isLoading = false;
   List<dynamic> _patterns = [];
   List<dynamic> _history = [];
@@ -36,6 +40,17 @@ class _AutoRunScreenState extends State<AutoRunScreen> {
   void initState() {
     super.initState();
     _fetchData();
+  }
+
+  @override
+  void dispose() {
+    _cyclesController.dispose();
+    _maxForceController.dispose();
+    _fileController.dispose();
+    _cyclesFocus.dispose();
+    _forceFocus.dispose();
+    _fileFocus.dispose();
+    super.dispose();
   }
 
   Future<void> _downloadLog(String filename) async {
@@ -148,9 +163,20 @@ class _AutoRunScreenState extends State<AutoRunScreen> {
       setState(() {
         _patterns = patterns;
         _history = history;
-        if (_patterns.isNotEmpty && _selectedPatternId == null) {
-          _selectedPatternId = _patterns.first['id'];
+
+        // Ensure _selectedPatternId is valid, or reset it
+        if (_patterns.isNotEmpty) {
+          final patternIds = _patterns.map((e) => e['id'] as int).toList();
+
+          // If current selection is not in the list, reset to first pattern
+          if (_selectedPatternId == null ||
+              !patternIds.contains(_selectedPatternId)) {
+            _selectedPatternId = patternIds.first;
+          }
+        } else {
+          _selectedPatternId = null; // No patterns available
         }
+
         _isLoading = false;
       });
     }
@@ -324,18 +350,23 @@ class _AutoRunScreenState extends State<AutoRunScreen> {
                                   hint: Text(localization.t('select_pattern')),
                                   underline: const SizedBox(),
                                   items: _patterns
-                                      .map(
-                                        (e) => DropdownMenuItem<int>(
-                                          value: e['id'] as int,
+                                      .map((e) => e['id'] as int)
+                                      .toSet() // Remove duplicates
+                                      .map((id) {
+                                        final pattern = _patterns.firstWhere(
+                                          (e) => e['id'] == id,
+                                        );
+                                        return DropdownMenuItem<int>(
+                                          value: id,
                                           child: Text(
-                                            "${e['name']}",
+                                            "${pattern['name']}",
                                             style: GoogleFonts.outfit(
                                               fontSize: 18,
                                               fontWeight: FontWeight.bold,
                                             ),
                                           ),
-                                        ),
-                                      )
+                                        );
+                                      })
                                       .toList(),
                                   onChanged: (v) =>
                                       setState(() => _selectedPatternId = v),
@@ -346,17 +377,32 @@ class _AutoRunScreenState extends State<AutoRunScreen> {
                                 localization.t('cycle_count'),
                                 TextField(
                                   controller: _cyclesController,
+                                  focusNode: _cyclesFocus,
                                   keyboardType: TextInputType.number,
                                   textAlign: TextAlign.end,
-                                  decoration: const InputDecoration(
+                                  enabled: true,
+                                  cursorColor: Colors.blue.shade800,
+                                  decoration: InputDecoration(
                                     border: InputBorder.none,
                                     hintText: "5",
+                                    hintStyle: GoogleFonts.outfit(
+                                      fontSize: 22,
+                                      color: Colors.grey.shade400,
+                                    ),
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
                                   ),
                                   style: GoogleFonts.outfit(
                                     fontSize: 22,
                                     fontWeight: FontWeight.bold,
                                     color: Colors.blue.shade800,
                                   ),
+                                  onChanged: (value) {
+                                    // Just update the value
+                                    setState(() {});
+                                  },
                                 ),
                               ),
                               const Divider(height: 32),
@@ -364,17 +410,31 @@ class _AutoRunScreenState extends State<AutoRunScreen> {
                                 localization.t('force_limit'),
                                 TextField(
                                   controller: _maxForceController,
+                                  focusNode: _forceFocus,
                                   keyboardType: TextInputType.number,
                                   textAlign: TextAlign.end,
-                                  decoration: const InputDecoration(
+                                  enabled: true,
+                                  cursorColor: Colors.blue.shade800,
+                                  decoration: InputDecoration(
                                     border: InputBorder.none,
                                     hintText: "5.0",
+                                    hintStyle: GoogleFonts.outfit(
+                                      fontSize: 22,
+                                      color: Colors.grey.shade400,
+                                    ),
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
                                   ),
                                   style: GoogleFonts.outfit(
                                     fontSize: 22,
                                     fontWeight: FontWeight.bold,
                                     color: Colors.blue.shade800,
                                   ),
+                                  onChanged: (value) {
+                                    setState(() {});
+                                  },
                                 ),
                               ),
                               const Divider(height: 32),
@@ -382,15 +442,30 @@ class _AutoRunScreenState extends State<AutoRunScreen> {
                                 localization.t('log_filename'),
                                 TextField(
                                   controller: _fileController,
+                                  focusNode: _fileFocus,
                                   textAlign: TextAlign.end,
-                                  decoration: const InputDecoration(
+                                  enabled: true,
+                                  cursorColor: Colors.blue.shade800,
+                                  decoration: InputDecoration(
                                     border: InputBorder.none,
                                     hintText: "run.csv",
+                                    hintStyle: GoogleFonts.outfit(
+                                      fontSize: 18,
+                                      color: Colors.grey.shade400,
+                                    ),
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
                                   ),
                                   style: GoogleFonts.outfit(
                                     fontSize: 18,
                                     fontWeight: FontWeight.w600,
+                                    color: Colors.blue.shade800,
                                   ),
+                                  onChanged: (value) {
+                                    setState(() {});
+                                  },
                                 ),
                               ),
                             ],
@@ -402,73 +477,132 @@ class _AutoRunScreenState extends State<AutoRunScreen> {
                   // Start/Stop Button
                   Consumer<RobotProvider>(
                     builder: (context, provider, _) {
-                      final bool canRun =
+                      // Determine if auto run is currently running
+                      final bool isAutoRunning =
+                          provider.isRunning && provider.controlMode == "AUTO";
+
+                      // Can start if: connected, not running, and pattern selected
+                      final bool canStart =
                           provider.isConnected &&
                           !provider.isRunning &&
                           _selectedPatternId != null;
 
+                      // Can stop if: auto run is currently running
+                      final bool canStop = isAutoRunning;
+
+                      // Button is enabled if can start OR can stop
+                      final bool isEnabled = canStart || canStop;
+
                       return SizedBox(
                         height: 64,
                         child: ElevatedButton.icon(
-                          onPressed: canRun
+                          onPressed: isEnabled
                               ? () async {
-                                  final cycles =
-                                      int.tryParse(_cyclesController.text) ?? 5;
-                                  final maxF =
-                                      double.tryParse(
-                                        _maxForceController.text,
-                                      ) ??
-                                      5.0;
-                                  final fname = _fileController.text;
+                                  if (isAutoRunning) {
+                                    // STOP AUTO RUN
+                                    setState(() => _isLoading = true);
+                                    final success =
+                                        await ApiService.stopAutoRun();
 
-                                  setState(() => _isLoading = true);
-                                  // Call API Service
-                                  final success = await ApiService.startAutoRun(
-                                    _selectedPatternId!,
-                                    cycles: cycles,
-                                    maxForce: maxF,
-                                    filename: fname,
-                                  );
-
-                                  // Refresh logs after brief delay
-                                  await Future.delayed(
-                                    const Duration(milliseconds: 500),
-                                  );
-                                  await _fetchData();
-                                  setState(() => _isLoading = false);
-
-                                  if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          success
-                                              ? "Auto Run Started!"
-                                              : "Failed to start Auto Run",
-                                        ),
-                                        backgroundColor: success
-                                            ? Colors.green
-                                            : Colors.red,
-                                      ),
+                                    // Refresh data
+                                    await Future.delayed(
+                                      const Duration(milliseconds: 500),
                                     );
+                                    await _fetchData();
+                                    setState(() => _isLoading = false);
+
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            success
+                                                ? localization.t(
+                                                    'auto_run_stopped',
+                                                  )
+                                                : "Failed to stop Auto Run",
+                                          ),
+                                          backgroundColor: success
+                                              ? Colors.orange
+                                              : Colors.red,
+                                        ),
+                                      );
+                                    }
+                                  } else {
+                                    // START AUTO RUN
+                                    final cycles =
+                                        int.tryParse(_cyclesController.text) ??
+                                        5;
+                                    final maxF =
+                                        double.tryParse(
+                                          _maxForceController.text,
+                                        ) ??
+                                        5.0;
+                                    final fname = _fileController.text;
+
+                                    setState(() => _isLoading = true);
+                                    final success =
+                                        await ApiService.startAutoRun(
+                                          _selectedPatternId!,
+                                          cycles: cycles,
+                                          maxForce: maxF,
+                                          filename: fname,
+                                        );
+
+                                    // Refresh logs after brief delay
+                                    await Future.delayed(
+                                      const Duration(milliseconds: 500),
+                                    );
+                                    await _fetchData();
+                                    setState(() => _isLoading = false);
+
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            success
+                                                ? "Auto Run Started!"
+                                                : "Failed to start Auto Run",
+                                          ),
+                                          backgroundColor: success
+                                              ? Colors.green
+                                              : Colors.red,
+                                        ),
+                                      );
+                                    }
                                   }
                                 }
-                              : null, // Disable if not ready
+                              : null, // Disable if neither can start nor stop
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: canRun
-                                ? const Color(0xFF0D47A1)
+                            backgroundColor: isEnabled
+                                ? (isAutoRunning
+                                      ? Colors
+                                            .red
+                                            .shade700 // Red for STOP
+                                      : const Color(
+                                          0xFF0D47A1,
+                                        )) // Blue for START
                                 : Colors.grey,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16),
                             ),
                             elevation: 5,
                           ),
-                          icon: const Icon(
-                            Icons.play_arrow_rounded,
+                          icon: Icon(
+                            isAutoRunning
+                                ? Icons
+                                      .stop_rounded // Stop icon
+                                : Icons.play_arrow_rounded, // Play icon
                             size: 32,
                             color: Colors.white,
                           ),
                           label: Text(
-                            localization.t('start_auto_run'),
+                            isAutoRunning
+                                ? localization.t('stop_auto_run')
+                                : localization.t('start_auto_run'),
                             style: GoogleFonts.outfit(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,

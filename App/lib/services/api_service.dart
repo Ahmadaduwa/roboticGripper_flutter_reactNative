@@ -100,6 +100,19 @@ class ApiService {
     }
   }
 
+  // 6.5 POST /auto-run/stop - Stop currently running auto run
+  static Future<bool> stopAutoRun() async {
+    try {
+      final baseUrl = await PrefsService.getBaseUrl();
+      final response = await client
+          .post(Uri.parse('$baseUrl/auto-run/stop'), headers: _headers)
+          .timeout(_defaultTimeout);
+      return response.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
   // 7. GET /api/patterns - Get all saved patterns from backend
   static Future<List<dynamic>> getPatterns() async {
     try {

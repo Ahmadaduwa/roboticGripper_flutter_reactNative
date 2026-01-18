@@ -29,11 +29,23 @@ export const RobotProvider = ({ children }) => {
             // 1. Pull from Backend
             const remotePatterns = await api.pullPatterns();
             if (remotePatterns) {
+                // Ensure steps have proper structure and handle null values
+                const normalizedPatterns = (remotePatterns || []).map(p => ({
+                    id: p.id,
+                    name: p.name || '',
+                    description: p.description || '',
+                    steps: (p.steps || []).map((s, index) => ({
+                        step_order: s.step_order !== undefined ? s.step_order : index,
+                        action_type: s.action_type || 'wait',
+                        params: s.params ? { ...s.params } : {},
+                    })),
+                }));
+                
                 // 2. Update Local State (In-Memory)
                 // In a real app we might merge, but strict sync means backend is truth.
-                setPatterns(remotePatterns);
+                setPatterns(normalizedPatterns);
                 // Persist for offline cache (though mode is online-only)
-                await AsyncStorage.setItem('patterns', JSON.stringify(remotePatterns));
+                await AsyncStorage.setItem('patterns', JSON.stringify(normalizedPatterns));
                 return true;
             }
             return false;
@@ -58,15 +70,32 @@ export const RobotProvider = ({ children }) => {
 
         // 1. Create a temporary list including the new/updated pattern
         let updatedList = [...patterns];
+        
+        // Format pattern with step_order for backend compatibility
+        const formattedPattern = {
+            name: pattern.name,
+            description: pattern.description || '',
+            steps: (pattern.steps || []).map((step, index) => ({
+                step_order: index,
+                action_type: step.action_type,
+                params: step.params || {},
+            })),
+        };
+        
+        // Only include id if it exists
+        if (pattern.id) {
+            formattedPattern.id = pattern.id;
+        }
+        
         if (pattern.id) {
             const idx = updatedList.findIndex(p => p.id === pattern.id);
-            if (idx >= 0) updatedList[idx] = pattern;
-            else updatedList.push(pattern);
+            if (idx >= 0) updatedList[idx] = formattedPattern;
+            else updatedList.push(formattedPattern);
         } else {
             // New pattern (no ID yet), relying on Name or Push to assign ID? 
             // Backend sync push uses ID or Name. 
             // We'll push it, then pull to get ID.
-            updatedList.push(pattern);
+            updatedList.push(formattedPattern);
         }
 
         // 2. Push to backend

@@ -87,6 +87,7 @@ class LocalizationProvider with ChangeNotifier {
       'log_filename': 'Log Filename',
       'start_auto_run': 'START AUTO RUN',
       'stop_auto_run': 'STOP AUTO RUN',
+      'auto_run_stopped': 'Auto Run Stopped',
       'execution_logs': 'Recent Execution Logs',
       'download': 'Download',
       'delete': 'Delete',
@@ -107,6 +108,7 @@ class LocalizationProvider with ChangeNotifier {
       'cannot_connect': 'Cannot connect to Simulation Backend.',
       'connection_failed': 'Connection Failed',
       'retry_connection': 'Retry Connection',
+      'continue_offline': 'Continue Offline',
     },
     'th': {
       'dashboard': 'แผงควบคุม',
@@ -167,6 +169,7 @@ class LocalizationProvider with ChangeNotifier {
       'log_filename': 'ชื่อไฟล์บันทึก',
       'start_auto_run': 'เริ่มทำงานอัตโนมัติ',
       'stop_auto_run': 'หยุดทำงานอัตโนมัติ',
+      'auto_run_stopped': 'หยุดทำงานอัตโนมัติแล้ว',
       'execution_logs': 'ประวัติการทำงานล่าสุด',
       'download': 'ดาวน์โหลด',
       'delete': 'ลบ',
@@ -187,6 +190,7 @@ class LocalizationProvider with ChangeNotifier {
       'cannot_connect': 'ไม่สามารถเชื่อมต่อกับระบบจำลองได้',
       'connection_failed': 'การเชื่อมต่อล้มเหลว',
       'retry_connection': 'ลองเชื่อมต่อใหม่',
+      'continue_offline': 'ดำเนินการต่อแบบออฟไลน์',
     },
   };
 

@@ -8,10 +8,10 @@ import logging
 from datetime import datetime
 from typing import List, Optional, Dict
 from fastapi import FastAPI, Depends, HTTPException
-from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import SQLModel, Field, Session, select, create_engine, Relationship, delete
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 # ==========================================
 # 1. SETUP & CONFIG
@@ -26,6 +26,17 @@ sqlite_url = f"sqlite:///{sqlite_file_name}"
 engine = create_engine(sqlite_url, echo=False)
 
 app = FastAPI(title="Robot Arm AIoT Backend")
+
+# Add global exception handler
+from fastapi.exceptions import RequestValidationError
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request, exc):
+    print(f"[VALIDATION ERROR] {request.method} {request.url.path}", flush=True)
+    print(f"[VALIDATION ERROR] Errors: {exc.errors()}", flush=True)
+    return JSONResponse(
+        status_code=422,
+        content={"detail": exc.errors()}
+    )
 
 # อนุญาตให้ App เชื่อมต่อเข้ามาได้ (CORS)
 app.add_middleware(
@@ -463,14 +474,20 @@ class SyncPatternStep(BaseModel):
     action_type: str
     params: dict
 
+    model_config = ConfigDict(extra='ignore')
+
 class SyncPattern(BaseModel):
     id: Optional[int] = None
     name: str
     description: Optional[str] = None
     steps: List[SyncPatternStep] = []
 
+    model_config = ConfigDict(extra='ignore')
+
 class SyncPatternsRequest(BaseModel):
     patterns: List[SyncPattern]
+
+    model_config = ConfigDict(extra='ignore')
 
 @app.get("/api/sync/patterns")
 def sync_patterns_pull(session: Session = Depends(get_session)):
@@ -517,6 +534,30 @@ def sync_patterns_pull(session: Session = Depends(get_session)):
 
 @app.post("/api/sync/patterns")
 def sync_patterns_push(payload: SyncPatternsRequest, session: Session = Depends(get_session)):
+    # Debug: Log incoming payload
+    import json
+    try:
+        debug_data = {
+            'pattern_count': len(payload.patterns),
+            'patterns': [
+                {
+                    'id': p.id,
+                    'name': p.name,
+                    'description': p.description,
+                    'steps_count': len(p.steps),
+                    'step_sample': {
+                        'step_order': p.steps[0].step_order if p.steps else None,
+                        'action_type': p.steps[0].action_type if p.steps else None,
+                        'params_keys': list(p.steps[0].params.keys()) if p.steps else None
+                    }
+                }
+                for p in payload.patterns
+            ]
+        }
+        print(f"[DEBUG] Incoming sync payload: {json.dumps(debug_data, indent=2, default=str)}", flush=True)
+    except Exception as e:
+        print(f"[DEBUG] Error logging payload: {e}", flush=True)
+    
     synced = 0
     incoming_ids = set()
 
@@ -759,7 +800,21 @@ def download_log(filename: str):
 def get_run_history(session: Session = Depends(get_session)):
     """Get list of past auto runs"""
     history = session.exec(select(RunHistory).order_by(RunHistory.created_at.desc())).all()
-    return history
+    # Explicitly convert to list of dicts to ensure id is included
+    return [
+        {
+            "id": h.id,
+            "filename": h.filename,
+            "pattern_id": h.pattern_id,
+            "pattern_name": h.pattern_name,
+            "cycle_target": h.cycle_target,
+            "cycle_completed": h.cycle_completed,
+            "max_force": h.max_force,
+            "status": h.status,
+            "created_at": h.created_at.isoformat()
+        }
+        for h in history
+    ]
 
 @app.delete("/api/history/{history_id}")
 def delete_run_history(history_id: int, session: Session = Depends(get_session)):

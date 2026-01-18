@@ -3,12 +3,14 @@ import { View, Text, StyleSheet, StatusBar } from 'react-native';
 import { colors } from '../theme/colors';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-export const Header = ({ title, rightIcon }) => {
+export const Header = ({ title, leftIcon, rightIcon }) => {
     return (
         <View style={styles.container}>
             <SafeAreaView edges={['top']} style={styles.safeArea}>
                 <View style={styles.content}>
-                    <View style={{ width: 24 }} />
+                    <View style={{ width: 24 }}>
+                        {leftIcon}
+                    </View>
                     <Text style={styles.title}>{title}</Text>
                     <View style={{ width: 24 }}>
                         {rightIcon}

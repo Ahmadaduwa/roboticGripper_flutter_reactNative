@@ -81,6 +81,27 @@ export const api = {
         }
     },
 
+    // Control Gripper - restore saved state
+    controlGripper: async (state) => {
+        try {
+            const body = {
+                angle: Math.round(state.angle),
+                max_force: state.max_force,
+                switch_on: state.switch_on,
+            };
+            const response = await client.post('/api/robot/gripper', body);
+            return response.status === 200;
+        } catch (e) {
+            // Handle 423 Locked errors gracefully (sequence still running)
+            if (e.response && e.response.status === 423) {
+                console.warn('Robot locked (sequence still running):', e.response.statusText);
+                return false;
+            }
+            console.error('Control gripper error:', e);
+            return false;
+        }
+    },
+
     // 6. Auto Run Start
     startAutoRun: async ({ patternId, cycles, maxForce, filename }) => {
         try {
@@ -198,11 +219,14 @@ export const api = {
     },
 
     // 17. Delete History
-    deleteRunHistory: async (id) => {
+    deleteRunHistory: async (idOrFilename) => {
         try {
-            const response = await client.delete(`/api/history/${id}`);
+            console.log("Deleting history with:", idOrFilename);
+            const response = await client.delete(`/api/history/${idOrFilename}`);
+            console.log("Delete response status:", response.status);
             return response.status === 200;
         } catch (e) {
+            console.error('Delete history error:', e);
             return false;
         }
     },

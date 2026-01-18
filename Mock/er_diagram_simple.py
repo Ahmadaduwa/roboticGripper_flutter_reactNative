@@ -1,0 +1,183 @@
+"""
+Simpler ER Diagram Generator - Direct Draw.io XML format
+Run: python er_diagram_simple.py
+"""
+
+import json
+
+def create_drawio_diagram():
+    """Create Draw.io compatible XML manually"""
+    
+    # Draw.io XML structure for ER diagram
+    xml_content = '''<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2026-01-17" agent="Mozilla/5.0" version="20.8.0" type="device">
+  <diagram name="Database ER Diagram" id="ER">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        
+        <!-- MOCK DATABASE SECTION -->
+        <mxCell id="mock_label" value="MOCK DATABASE (Backend)" style="text;fontSize=16;fontStyle=1;align=center;fillColor=#e1d5e7;" vertex="1" parent="1">
+          <mxGeometry x="50" y="20" width="600" height="30" as="geometry"/>
+        </mxCell>
+        
+        <!-- Table: teachingpatterns -->
+        <mxCell id="table_teachingpatterns" value="teachingpatterns" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeLast=0;collapsible=1;marginBottom=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="50" y="80" width="250" height="130" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="col_tp_1" value="🔑 id: INTEGER" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="table_teachingpatterns">
+          <mxGeometry y="30" width="250" height="25" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="col_tp_2" value="name: VARCHAR (NOT NULL)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="table_teachingpatterns">
+          <mxGeometry y="55" width="250" height="25" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="col_tp_3" value="created_at: DATETIME" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="table_teachingpatterns">
+          <mxGeometry y="80" width="250" height="25" as="geometry"/>
+        </mxCell>
+        
+        <!-- Table: patternsteps -->
+        <mxCell id="table_patternsteps" value="patternsteps" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeLast=0;collapsible=1;marginBottom=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="380" y="80" width="280" height="300" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="col_ps_1" value="🔑 id: INTEGER" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="table_patternsteps">
+          <mxGeometry y="30" width="280" height="25" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="col_ps_2" value="🔗 pattern_id: INTEGER (FK)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="table_patternsteps">
+          <mxGeometry y="55" width="280" height="25" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="col_ps_3" value="sequence_order: INTEGER" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="table_patternsteps">
+          <mxGeometry y="80" width="280" height="25" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="col_ps_4" value="action_type: VARCHAR" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="table_patternsteps">
+          <mxGeometry y="105" width="280" height="25" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="col_ps_5" value="j1, j2, j3, j4, j5, j6: FLOAT" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" vertex="1" parent="table_patternsteps">
+          <mxGeometry y="130" width="280" height="35" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="col_ps_6" value="gripper_angle: INTEGER" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="table_patternsteps">
+          <mxGeometry y="165" width="280" height="25" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="col_ps_7" value="wait_time: FLOAT" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="table_patternsteps">
+          <mxGeometry y="190" width="280" height="25" as="geometry"/>
+        </mxCell>
+        
+        <!-- Relationship: teachingpatterns 1:N patternsteps -->
+        <mxCell id="rel_1" value="contains" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERoneToMany;startArrow=ERmandOne;endSize=6;startSize=6;" edge="1" parent="1" source="table_teachingpatterns" target="table_patternsteps">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        
+        <!-- Table: runhistory -->
+        <mxCell id="table_runhistory" value="runhistory" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeLast=0;collapsible=1;marginBottom=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="730" y="80" width="280" height="200" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="col_rh_1" value="🔑 id: INTEGER" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="table_runhistory">
+          <mxGeometry y="30" width="280" height="25" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="col_rh_2" value="filename: VARCHAR" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="table_runhistory">
+          <mxGeometry y="55" width="280" height="25" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="col_rh_3" value="pattern_id: INTEGER" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="table_runhistory">
+          <mxGeometry y="80" width="280" height="25" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="col_rh_4" value="cycle_target, cycle_completed: INTEGER" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" vertex="1" parent="table_runhistory">
+          <mxGeometry y="105" width="280" height="35" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="col_rh_5" value="max_force: FLOAT, status: VARCHAR" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" vertex="1" parent="table_runhistory">
+          <mxGeometry y="140" width="280" height="25" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="col_rh_6" value="created_at: DATETIME" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="table_runhistory">
+          <mxGeometry y="165" width="280" height="25" as="geometry"/>
+        </mxCell>
+        
+        <!-- FLUTTER DATABASE SECTION -->
+        <mxCell id="flutter_label" value="FLUTTER DATABASE (Local)" style="text;fontSize=16;fontStyle=1;align=center;fillColor=#f8cecc;" vertex="1" parent="1">
+          <mxGeometry x="50" y="450" width="600" height="30" as="geometry"/>
+        </mxCell>
+        
+        <!-- Table: patterns (Flutter) -->
+        <mxCell id="table_flutter_patterns" value="patterns" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeLast=0;collapsible=1;marginBottom=0;fillColor=#f8cecc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="50" y="510" width="280" height="160" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="col_fp_1" value="🔑 id: INTEGER" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="table_flutter_patterns">
+          <mxGeometry y="30" width="280" height="25" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="col_fp_2" value="name: TEXT (NOT NULL UNIQUE)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" vertex="1" parent="table_flutter_patterns">
+          <mxGeometry y="55" width="280" height="25" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="col_fp_3" value="description: TEXT" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="table_flutter_patterns">
+          <mxGeometry y="80" width="280" height="25" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="col_fp_4" value="created_at: TEXT, updated_at: TEXT" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" vertex="1" parent="table_flutter_patterns">
+          <mxGeometry y="105" width="280" height="25" as="geometry"/>
+        </mxCell>
+        
+        <!-- Table: pattern_steps (Flutter) -->
+        <mxCell id="table_flutter_steps" value="pattern_steps" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeLast=0;collapsible=1;marginBottom=0;fillColor=#f8cecc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="380" y="510" width="280" height="160" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="col_fps_1" value="🔑 id: INTEGER" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="table_flutter_steps">
+          <mxGeometry y="30" width="280" height="25" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="col_fps_2" value="🔗 pattern_id: INTEGER (FK)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="table_flutter_steps">
+          <mxGeometry y="55" width="280" height="25" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="col_fps_3" value="step_order: INTEGER" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="table_flutter_steps">
+          <mxGeometry y="80" width="280" height="25" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="col_fps_4" value="action_type: TEXT, params: TEXT (JSON)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" vertex="1" parent="table_flutter_steps">
+          <mxGeometry y="105" width="280" height="25" as="geometry"/>
+        </mxCell>
+        
+        <!-- Relationship: patterns 1:N pattern_steps -->
+        <mxCell id="rel_2" value="contains" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERoneToMany;startArrow=ERmandOne;endSize=6;startSize=6;" edge="1" parent="1" source="table_flutter_patterns" target="table_flutter_steps">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        
+        <!-- Legend -->
+        <mxCell id="legend" value="Legend: 🔑=Primary Key | 🔗=Foreign Key" style="text;fontSize=12;align=left;fillColor=#f0f0f0;strokeColor=#999999;" vertex="1" parent="1">
+          <mxGeometry x="50" y="750" width="400" height="30" as="geometry"/>
+        </mxCell>
+        
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>'''
+    
+    # Save to file
+    with open('er_diagram.xml', 'w', encoding='utf-8') as f:
+        f.write(xml_content)
+    
+    print("✅ ER Diagram created: er_diagram.xml")
+    print("\n📋 How to use in Draw.io:")
+    print("   1. Go to https://draw.io/")
+    print("   2. Click 'File' → 'Open'")
+    print("   3. Select 'er_diagram.xml' from this folder")
+    print("   4. Or drag & drop the file to draw.io")
+
+if __name__ == "__main__":
+    create_drawio_diagram()

@@ -57,6 +57,12 @@ const translations = {
         stepsCount: "steps",
         enterName: "Enter name",
         addDesc: "Add a description...",
+        pleaseEnterName: "Please enter pattern name",
+        patternSaved: "Pattern saved successfully",
+        saveFailed: "Failed to save pattern",
+        noSteps: "No steps to execute",
+        executionFailed: "Execution failed",
+        manualControlDisabled: "Manual Control Disabled During Execution",
 
         // Auto Run
         systemReady: "System Ready",
@@ -74,6 +80,7 @@ const translations = {
         running: "Running...",
         cycles: "Cycles",
         status: "Status",
+        autoRunCompleted: "Auto Run completed successfully",
 
         // General
         cancel: "Cancel",
@@ -84,6 +91,8 @@ const translations = {
         error: "Error",
         saved: "Saved",
         failed: "Failed",
+        syncSuccess: "Sync completed successfully",
+        syncFailed: "Sync failed",
     },
     TH: {
         dashboard: "แผงควบคุม",
@@ -141,6 +150,12 @@ const translations = {
         stepsCount: "ขั้นตอน",
         enterName: "กรอกชื่อ",
         addDesc: "เพิ่มคำอธิบาย...",
+        pleaseEnterName: "กรุณากรอกชื่อรูปแบบ",
+        patternSaved: "บันทึกรูปแบบสำเร็จ",
+        saveFailed: "ไม่สามารถบันทึกรูปแบบได้",
+        noSteps: "ไม่มีขั้นตอนที่จะทำ",
+        executionFailed: "การทำงานล้มเหลว",
+        manualControlDisabled: "ปิดการควบคุมแบบแมนนวลระหว่างการทำงาน",
 
         // Auto Run
         systemReady: "ระบบพร้อม",
@@ -158,6 +173,7 @@ const translations = {
         running: "กำลังทำงาน...",
         cycles: "รอบ",
         status: "สถานะ",
+        autoRunCompleted: "ทำงานอัตโนมัติสำเร็จแล้ว",
 
         // General
         cancel: "ยกเลิก",
@@ -168,6 +184,8 @@ const translations = {
         error: "ผิดพลาด",
         saved: "บันทึกแล้ว",
         failed: "ล้มเหลว",
+        syncSuccess: "ซิงค์กับฐานข้อมูลสำเร็จ",
+        syncFailed: "ซิงค์กับฐานข้อมูลล้มเหลว",
     }
 };
 

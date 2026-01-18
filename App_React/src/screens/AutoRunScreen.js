@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator, Modal, FlatList, Linking } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator, Modal, FlatList, Linking, Platform } from 'react-native';
 import { useRobot } from '../features/RobotContext';
 import { api } from '../api/api';
 import { colors } from '../theme/colors';
@@ -9,7 +9,7 @@ import { Play, CheckCircle, FileText, Download, Trash2, ChevronDown, RefreshCw, 
 import { useLanguage } from '../features/LanguageContext';
 
 export const AutoRunScreen = () => {
-    const { patterns } = useRobot();
+    const { patterns, sensorData } = useRobot();
     const { t } = useLanguage();
 
     // Config State
@@ -21,7 +21,38 @@ export const AutoRunScreen = () => {
 
     // Status State
     const [isRunning, setIsRunning] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
     const [history, setHistory] = useState([]);
+    const pollingIntervalRef = useRef(null);
+    const startTimeRef = useRef(0);
+
+    // Monitor when auto run naturally finishes
+    useEffect(() => {
+        // Ignore sensor data for 2 seconds after starting to prevent immediate stop due to stale data
+        const isWarmup = Date.now() - startTimeRef.current < 2000;
+        
+        if (!isWarmup && isRunning && sensorData && sensorData.mode === 'MANUAL' && !sensorData.is_running) {
+            // Auto run has finished naturally
+            setIsRunning(false);
+            // Stop polling
+            if (pollingIntervalRef.current) {
+                clearInterval(pollingIntervalRef.current);
+                pollingIntervalRef.current = null;
+            }
+            Alert.alert('Completed', t('autoRunCompleted') || 'Auto Run completed successfully');
+            // Refresh history
+            setTimeout(fetchHistory, 500);
+        }
+    }, [sensorData, isRunning]);
+
+    // Cleanup polling on unmount
+    useEffect(() => {
+        return () => {
+            if (pollingIntervalRef.current) {
+                clearInterval(pollingIntervalRef.current);
+            }
+        };
+    }, []);
 
     // Load initial pattern (if any)
     useEffect(() => {
@@ -37,6 +68,7 @@ export const AutoRunScreen = () => {
     const fetchHistory = async () => {
         try {
             const data = await api.getRunHistory();
+            console.log("History data received:", data); // Debug
             if (data) setHistory(data);
         } catch (e) {
             console.log("History error", e);
@@ -46,7 +78,10 @@ export const AutoRunScreen = () => {
     const handleStart = async () => {
         if (!selectedPattern) return Alert.alert("Error", "Please select a pattern");
         if (isRunning) return handleStop();
+        if (isLoading) return; // Prevent double clicks
 
+        setIsLoading(true);
+        startTimeRef.current = Date.now();
         setIsRunning(true);
 
         // Correctly mapping keys to api.js expected function arguments
@@ -59,23 +94,110 @@ export const AutoRunScreen = () => {
 
         if (success) {
             Alert.alert("Started", "Auto Run Started Successfully");
-            // Poll for completion or updates in real app
-            setTimeout(fetchHistory, 5000); // Simple refresh after 5s
+            // Start polling for completion
+            if (pollingIntervalRef.current) {
+                clearInterval(pollingIntervalRef.current);
+            }
+            pollingIntervalRef.current = setInterval(fetchHistory, 2000); // Poll every 2s
         } else {
             setIsRunning(false);
             Alert.alert("Error", "Failed to start. Check connection or parameters.");
         }
+        setIsLoading(false);
     };
 
     const handleStop = async () => {
+        setIsLoading(true);
         await api.stopAutoRun();
         setIsRunning(false);
+        // Stop polling
+        if (pollingIntervalRef.current) {
+            clearInterval(pollingIntervalRef.current);
+            pollingIntervalRef.current = null;
+        }
         Alert.alert("Stopped", "Auto Run Stopped");
+        setIsLoading(false);
     };
 
-    const handleDeleteLog = async (filename) => {
-        // Optimistic delete
-        setHistory(prev => prev.filter(h => h.filename !== filename));
+    const handleDeleteLog = async (log) => {
+        console.log("=== DELETE BUTTON CLICKED ===");
+        console.log("Log object:", log);
+        console.log("Log ID:", log.id);
+        console.log("Log filename:", log.filename);
+
+        // Use window.confirm for web compatibility
+        const confirmed = Platform.OS === 'web'
+            ? window.confirm(`Delete ${log.filename}?`)
+            : await new Promise((resolve) => {
+                Alert.alert(
+                    "Delete Log",
+                    `Delete ${log.filename}?`,
+                    [
+                        {
+                            text: "Cancel",
+                            onPress: () => {
+                                console.log("User cancelled delete");
+                                resolve(false);
+                            },
+                            style: "cancel"
+                        },
+                        {
+                            text: "Delete",
+                            onPress: () => {
+                                console.log("User confirmed delete");
+                                resolve(true);
+                            },
+                            style: "destructive"
+                        }
+                    ],
+                    { cancelable: false }
+                );
+            });
+
+        if (!confirmed) {
+            console.log("Delete cancelled by user");
+            return;
+        }
+
+        console.log("🚀 Starting delete API call...");
+        console.log("Deleting with ID:", log.id);
+
+        try {
+            const success = await api.deleteRunHistory(log.id);
+            console.log("✅ Delete API result:", success);
+
+            if (success) {
+                console.log("Delete successful, updating UI");
+                setHistory(prev => prev.filter(h => h.id !== log.id));
+
+                if (Platform.OS === 'web') {
+                    alert("Log deleted successfully");
+                } else {
+                    Alert.alert("Success", "Log deleted successfully");
+                }
+
+                setTimeout(() => {
+                    console.log("Refreshing history...");
+                    fetchHistory();
+                }, 500);
+            } else {
+                console.log("Delete API returned false");
+
+                if (Platform.OS === 'web') {
+                    alert("Delete failed - API returned false");
+                } else {
+                    Alert.alert("Error", "Delete failed - API returned false");
+                }
+            }
+        } catch (e) {
+            console.error("Delete error:", e);
+
+            if (Platform.OS === 'web') {
+                alert(`Delete failed: ${e.message}`);
+            } else {
+                Alert.alert("Error", `Delete failed: ${e.message}`);
+            }
+        }
     };
 
     const downloadLog = async (filename) => {
@@ -172,11 +294,16 @@ export const AutoRunScreen = () => {
 
                 {/* 3. Action Button */}
                 <TouchableOpacity
-                    style={[styles.actionBtn, isRunning && { backgroundColor: colors.danger }]}
-                    onPress={handleStart}
+                    style={[styles.actionBtn, isRunning && { backgroundColor: colors.danger }, isLoading && { opacity: 0.6 }]}
+                    onPress={isRunning ? handleStop : handleStart}
+                    disabled={isLoading}
                 >
-                    {isRunning ? <XCircle color="white" fill="white" size={24} style={{ marginRight: 8 }} /> :
-                        <Play color="white" fill="white" size={24} style={{ marginRight: 8 }} />}
+                    {isLoading ? (
+                        <ActivityIndicator color="white" style={{ marginRight: 8 }} />
+                    ) : (
+                        isRunning ? <XCircle color="white" fill="white" size={24} style={{ marginRight: 8 }} /> :
+                            <Play color="white" fill="white" size={24} style={{ marginRight: 8 }} />
+                    )}
                     <Text style={styles.actionBtnText}>
                         {isRunning ? t('stopAutoRun') : t('startAutoRun')}
                     </Text>
@@ -199,11 +326,22 @@ export const AutoRunScreen = () => {
                         </View>
 
                         <View style={styles.logActions}>
-                            <TouchableOpacity onPress={() => downloadLog(log.filename)}>
-                                <Download size={20} color="#616161" />
+                            <TouchableOpacity
+                                onPress={() => downloadLog(log.filename)}
+                                activeOpacity={0.6}
+                            >
+                                <Download size={22} color="#616161" />
                             </TouchableOpacity>
-                            <TouchableOpacity onPress={() => handleDeleteLog(log.filename)}>
-                                <Trash2 size={20} color="#E53935" />
+                            
+                            {/* Delete button - SIMPLE */}
+                            <TouchableOpacity
+                                onPress={() => {
+                                    console.log("🗑️ DELETE PRESSED:", log.filename, "ID:", log.id);
+                                    handleDeleteLog(log);
+                                }}
+                                activeOpacity={0.5}
+                            >
+                                <Trash2 size={22} color="#E53935" />
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -323,7 +461,11 @@ const styles = StyleSheet.create({
     },
     logName: { fontSize: 16, fontWeight: 'bold', color: '#212121' },
     logMeta: { fontSize: 12, color: '#757575', marginTop: 2 },
-    logActions: { flexDirection: 'row', gap: 16 },
+    logActions: {
+        flexDirection: 'row',
+        gap: 16,
+        alignItems: 'center',
+    },
 
     // Modal
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 },

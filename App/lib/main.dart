@@ -77,7 +77,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 "${context.read<LocalizationProvider>().t('cannot_connect')}\nPlease ensure simulation.py is running.";
           });
         }
-        return;
+        return; // Stop here but allow user to continue offline
       }
 
       // 2. Sync Data
@@ -124,6 +124,15 @@ class _SplashScreenState extends State<SplashScreen> {
     }
   }
 
+  // Method to continue to app without connection
+  void _continueOffline() {
+    if (mounted) {
+      Navigator.of(
+        context,
+      ).pushReplacement(MaterialPageRoute(builder: (_) => const MainLayout()));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final localization = context.watch<LocalizationProvider>();
@@ -160,16 +169,48 @@ class _SplashScreenState extends State<SplashScreen> {
                   ),
                 ),
                 const SizedBox(height: 32),
-                ElevatedButton.icon(
-                  onPressed: _initializeApp,
-                  icon: const Icon(Icons.refresh),
-                  label: Text(localization.t('retry_connection')),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 32,
-                      vertical: 16,
+                Column(
+                  children: [
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: _initializeApp,
+                        icon: const Icon(Icons.refresh),
+                        label: Text(
+                          localization.t('retry_connection'),
+                          textAlign: TextAlign.center,
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: const Color(0xFF0D47A1),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 16,
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: _continueOffline,
+                        icon: const Icon(Icons.arrow_forward),
+                        label: Text(
+                          localization.t('continue_offline'),
+                          textAlign: TextAlign.center,
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          side: const BorderSide(color: Colors.white, width: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 16,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ] else ...[
                 const CircularProgressIndicator(color: Colors.white),

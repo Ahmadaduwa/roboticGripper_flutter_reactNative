@@ -3,7 +3,7 @@ import { View, Text, ActivityIndicator, StyleSheet, TouchableOpacity } from 'rea
 import { useRobot } from '../features/RobotContext';
 import { colors } from '../theme/colors';
 import { api } from '../api/api';
-import { WifiOff, RotateCw } from 'lucide-react-native';
+import { WifiOff, RotateCw, ArrowRight } from 'lucide-react-native';
 
 export const SplashScreen = ({ navigation }) => {
     const { syncPatterns } = useRobot();
@@ -19,7 +19,7 @@ export const SplashScreen = ({ navigation }) => {
         if (!isOnline) {
             setHasError(true);
             setStatus('Cannot connect to Simulation Backend.\nPlease ensure simulation.py is running.');
-            return;
+            return; // Stop here but allow user to continue offline
         }
 
         // 2. Sync Data
@@ -27,6 +27,11 @@ export const SplashScreen = ({ navigation }) => {
         await syncPatterns();
 
         // 3. Navigate
+        navigation.replace('Main');
+    };
+
+    const continueOffline = () => {
+        // Navigate to main app without syncing
         navigation.replace('Main');
     };
 
@@ -41,10 +46,16 @@ export const SplashScreen = ({ navigation }) => {
                     <WifiOff size={80} color={colors.danger} />
                     <Text style={styles.title}>Connection Failed</Text>
                     <Text style={styles.errorText}>{status}</Text>
-                    <TouchableOpacity style={styles.button} onPress={initialize}>
-                        <RotateCw size={20} color="white" style={{ marginRight: 8 }} />
-                        <Text style={styles.buttonText}>Retry Connection</Text>
-                    </TouchableOpacity>
+                    <View style={styles.buttonRow}>
+                        <TouchableOpacity style={styles.button} onPress={initialize}>
+                            <RotateCw size={20} color={colors.primary} style={{ marginRight: 8 }} />
+                            <Text style={styles.buttonText}>Retry</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.outlineButton} onPress={continueOffline}>
+                            <ArrowRight size={20} color="white" style={{ marginRight: 8 }} />
+                            <Text style={styles.outlineButtonText}>Continue Offline</Text>
+                        </TouchableOpacity>
+                    </View>
                 </View>
             ) : (
                 <View style={styles.center}>
@@ -86,15 +97,35 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: '500',
     },
+    buttonRow: {
+        flexDirection: 'row',
+        gap: 16,
+        marginTop: 16,
+    },
     button: {
         flexDirection: 'row',
-        backgroundColor: 'rgba(255,255,255,0.2)',
+        backgroundColor: 'white',
         paddingVertical: 16,
-        paddingHorizontal: 32,
+        paddingHorizontal: 24,
         borderRadius: 8,
         alignItems: 'center',
     },
     buttonText: {
+        color: colors.primary,
+        fontWeight: 'bold',
+        fontSize: 16,
+    },
+    outlineButton: {
+        flexDirection: 'row',
+        backgroundColor: 'transparent',
+        borderWidth: 2,
+        borderColor: 'white',
+        paddingVertical: 14,
+        paddingHorizontal: 24,
+        borderRadius: 8,
+        alignItems: 'center',
+    },
+    outlineButtonText: {
         color: 'white',
         fontWeight: 'bold',
         fontSize: 16,
