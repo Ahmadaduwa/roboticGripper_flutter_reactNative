@@ -1,0 +1,11 @@
+Timestamp,Cycle,Phase,Force_N,Material,Confidence,J1,J2,J3
+21:18:31.745,1,Gripping,0.15,Sponge/Soft,88.2,0.0,0.0,0.0
+21:18:31.797,1,Gripping,0.30,Sponge/Soft,88.2,0.0,0.0,0.0
+21:18:31.847,1,Gripping,0.45,Sponge/Soft,88.2,0.0,0.0,0.0
+21:18:31.899,1,Gripping,0.60,Sponge/Soft,88.2,0.0,0.0,0.0
+21:18:31.951,1,Gripping,0.75,Sponge/Soft,88.2,0.0,0.0,0.0
+21:18:32.002,1,Gripping,0.90,Sponge/Soft,88.2,0.0,0.0,0.0
+21:18:32.053,1,Gripping,1.05,Sponge/Soft,88.2,0.0,0.0,0.0
+21:18:32.105,1,Gripping,1.20,Sponge/Soft,88.2,0.0,0.0,0.0
+21:18:32.156,1,Gripping,1.35,Sponge/Soft,88.2,0.0,0.0,0.0
+21:18:32.157,1,Gripping (Hold),3.00,Sponge/Soft,88.2,0.0,0.0,0.0
