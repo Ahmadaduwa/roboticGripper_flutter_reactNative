@@ -1,5 +1,5 @@
 name: robotic_gripper_app
-description: "A new Flutter project."
+description: "Industrial Robotic Gripper Control Application with real-time monitoring, manual control, and Teaching Mode for no-code programming. Cross-platform solution for Android, iOS, Windows, macOS, Linux, and Web."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
